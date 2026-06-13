@@ -1,0 +1,22 @@
+version: '3.8'
+services:
+  postgres:
+    image: postgres:16
+    container_name: eluno-postgres
+    environment:
+      POSTGRES_USER: eluno
+      POSTGRES_PASSWORD: eluno123
+      POSTGRES_DB: eluno_oms
+    ports:
+      - "5432:5432"
+    volumes:
+      - eluno_pg_data:/var/lib/postgresql/data
+
+  redis:
+    image: redis:7
+    container_name: eluno-redis
+    ports:
+      - "6379:6379"
+
+volumes:
+  eluno_pg_data:
