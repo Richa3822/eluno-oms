@@ -1,7 +1,9 @@
 import { useState } from 'react'
 import { useOrders } from './hooks/useOrders'
+import { useOrder } from './hooks/useOrder'
 import { OrdersTable } from './components/OrdersTable'
 import { FilterBar } from './components/FilterBar'
+import { OrderDetailModal } from './components/OrderDetailModal'
 import type { Order } from './types/order'
 
 function App() {
@@ -9,7 +11,7 @@ function App() {
   const [status, setStatus] = useState('')
   const [lensType, setLensType] = useState('')
   const [storeLocation, setStoreLocation] = useState('')
-  const [selectedOrder, setSelectedOrder] = useState<Order | null>(null)
+  const [selectedOrderId, setSelectedOrderId] = useState<string | null>(null)
 
   const { data, isLoading, isError } = useOrders({
     page,
@@ -18,6 +20,12 @@ function App() {
     lensType: lensType || undefined,
     storeLocation: storeLocation || undefined,
   })
+
+  const { data: selectedOrder } = useOrder(selectedOrderId)
+
+  const handleRowClick = (order: Order) => {
+    setSelectedOrderId(order.id)
+  }
 
   return (
     <div className="min-h-screen bg-gray-50 p-6">
@@ -37,7 +45,7 @@ function App() {
 
       {data && (
         <>
-          <OrdersTable orders={data.data} onRowClick={setSelectedOrder} />
+          <OrdersTable orders={data.data} onRowClick={handleRowClick} />
 
           <div className="flex items-center justify-between mt-4">
             <span className="text-sm text-gray-500">
@@ -64,18 +72,7 @@ function App() {
       )}
 
       {selectedOrder && (
-        <div className="fixed inset-0 bg-black/30 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg p-6 w-96">
-            <h2 className="text-lg font-bold mb-2">{selectedOrder.customerName}</h2>
-            <p className="text-sm text-gray-500">Status: {selectedOrder.status}</p>
-            <button
-              onClick={() => setSelectedOrder(null)}
-              className="mt-4 px-4 py-2 bg-gray-800 text-white rounded-md text-sm"
-            >
-              Close
-            </button>
-          </div>
-        </div>
+        <OrderDetailModal order={selectedOrder} onClose={() => setSelectedOrderId(null)} />
       )}
     </div>
   )
