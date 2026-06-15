@@ -2,10 +2,11 @@ import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateOrderDto } from './dto/create-order.dto';
 import { UpdateStatusDto } from './dto/update-status.dto';
+import { PredictionService } from 'src/prediction/prediction.service';
 
 @Injectable()
 export class OrdersService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(private readonly prisma: PrismaService,private readonly prediction: PredictionService) {}
 
   async create(dto: CreateOrderDto) {
     // Step 1: Get SLA config for this lens type
@@ -192,5 +193,30 @@ export class OrdersService {
     });
 
     return updated;
+  }
+
+  async predictBreach(id: string) {
+    const order = await this.prisma.order.findUnique({ where: { id } });
+    if (!order) throw new NotFoundException(`Order ${id} not found`);
+  
+    const result = await this.prediction.predictForOrder(id);
+  
+    const slaDeadlineMs = new Date(order.slaDeadline).getTime();
+  
+    const alert = await this.prisma.breachAlert.create({
+      data: {
+        orderId: id,
+        predictedBreachAt: new Date(slaDeadlineMs),
+        breachRisk: result.riskBand,
+        riskReason: result.reason,
+      },
+    });
+  
+    return {
+      orderId: id,
+      riskBand: result.riskBand,
+      reason: result.reason,
+      alertId: alert.id,
+    };
   }
 }

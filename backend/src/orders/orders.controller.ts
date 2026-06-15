@@ -32,4 +32,9 @@ export class OrdersController {
   updateStatus(@Param('id') id: string, @Body() dto: UpdateStatusDto) {
     return this.ordersService.updateStatus(id, dto);
   }
+
+  @Post(':id/predict')
+predictBreach(@Param('id') id: string) {
+  return this.ordersService.predictBreach(id);
+}
 }
