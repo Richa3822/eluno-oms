@@ -39,6 +39,17 @@ export function OrderDetailModal({ order, onClose }: OrderDetailModalProps) {
     },
   })
 
+  const predictMutation = useMutation({
+    mutationFn: async () => {
+      const res = await api.post(`/orders/${order.id}/predict`)
+      return res.data
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['orders'] })
+      queryClient.invalidateQueries({ queryKey: ['order', order.id] })
+    },
+  })
+
   const canSubmit = newStatus !== order.status && reason.trim().length > 0
 
   return (
@@ -73,6 +84,41 @@ export function OrderDetailModal({ order, onClose }: OrderDetailModalProps) {
               {formatHoursRemaining(order.hoursRemaining)}
             </span>
           </div>
+        </div>
+
+        {/* AI Breach Prediction */}
+        <div className="border-t pt-4 mb-4">
+          <div className="flex items-center justify-between mb-2">
+            <h3 className="text-sm font-semibold text-gray-700">AI Breach Prediction</h3>
+            <button
+              onClick={() => predictMutation.mutate()}
+              disabled={predictMutation.isPending}
+              className="text-xs bg-indigo-600 text-white rounded-md px-3 py-1.5 font-medium disabled:opacity-40"
+            >
+              {predictMutation.isPending ? 'Analyzing...' : 'Predict Risk'}
+            </button>
+          </div>
+
+          {predictMutation.data && (
+            <div
+              className={`text-xs rounded-md p-3 ${predictMutation.data.riskBand === 'HIGH'
+                  ? 'bg-red-50 text-red-700 border border-red-200'
+                  : predictMutation.data.riskBand === 'MEDIUM'
+                    ? 'bg-orange-50 text-orange-700 border border-orange-200'
+                    : 'bg-green-50 text-green-700 border border-green-200'
+                }`}
+            >
+              <div className="font-semibold mb-1">Risk: {predictMutation.data.riskBand}</div>
+              <div>{predictMutation.data.reason}</div>
+              {predictMutation.data.alertSent && (
+                <div className="mt-1 text-xs italic">📧 Alert email sent to ops team</div>
+              )}
+            </div>
+          )}
+
+          {predictMutation.isError && (
+            <p className="text-red-500 text-xs">Failed to get prediction. Try again.</p>
+          )}
         </div>
 
         {/* Status update form */}
