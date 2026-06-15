@@ -3,10 +3,15 @@ import { PrismaService } from '../prisma/prisma.service';
 import { CreateOrderDto } from './dto/create-order.dto';
 import { UpdateStatusDto } from './dto/update-status.dto';
 import { PredictionService } from 'src/prediction/prediction.service';
+import { AlertsService } from 'src/alerts/alerts.service';
 
 @Injectable()
 export class OrdersService {
-  constructor(private readonly prisma: PrismaService,private readonly prediction: PredictionService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly prediction: PredictionService,
+    private readonly alerts: AlertsService,
+  ) {}
 
   async create(dto: CreateOrderDto) {
     // Step 1: Get SLA config for this lens type
@@ -195,6 +200,31 @@ export class OrdersService {
     return updated;
   }
 
+  // async predictBreach(id: string) {
+  //   const order = await this.prisma.order.findUnique({ where: { id } });
+  //   if (!order) throw new NotFoundException(`Order ${id} not found`);
+  
+  //   const result = await this.prediction.predictForOrder(id);
+  
+  //   const slaDeadlineMs = new Date(order.slaDeadline).getTime();
+  
+  //   const alert = await this.prisma.breachAlert.create({
+  //     data: {
+  //       orderId: id,
+  //       predictedBreachAt: new Date(slaDeadlineMs),
+  //       breachRisk: result.riskBand,
+  //       riskReason: result.reason,
+  //     },
+  //   });
+  
+  //   return {
+  //     orderId: id,
+  //     riskBand: result.riskBand,
+  //     reason: result.reason,
+  //     alertId: alert.id,
+  //   };
+  // }
+
   async predictBreach(id: string) {
     const order = await this.prisma.order.findUnique({ where: { id } });
     if (!order) throw new NotFoundException(`Order ${id} not found`);
@@ -202,6 +232,28 @@ export class OrdersService {
     const result = await this.prediction.predictForOrder(id);
   
     const slaDeadlineMs = new Date(order.slaDeadline).getTime();
+    const hoursRemaining = Math.round((slaDeadlineMs - Date.now()) / (1000 * 60 * 60));
+  
+    let alertSentAt: Date | null = null;
+    let channel: string | null = null;
+  
+    if (result.riskBand === 'HIGH') {
+      const sendResult = await this.alerts.sendBreachAlert({
+        orderId: id,
+        customerName: order.customerName,
+        storeLocation: order.storeLocation,
+        lensType: order.lensType,
+        status: order.status,
+        riskBand: result.riskBand,
+        reason: result.reason,
+        hoursRemaining,
+      });
+  
+      if (sendResult.sent) {
+        alertSentAt = new Date();
+        channel = sendResult.channel;
+      }
+    }
   
     const alert = await this.prisma.breachAlert.create({
       data: {
@@ -209,6 +261,8 @@ export class OrdersService {
         predictedBreachAt: new Date(slaDeadlineMs),
         breachRisk: result.riskBand,
         riskReason: result.reason,
+        alertSentAt,
+        channel,
       },
     });
   
@@ -216,6 +270,7 @@ export class OrdersService {
       orderId: id,
       riskBand: result.riskBand,
       reason: result.reason,
+      alertSent: !!alertSentAt,
       alertId: alert.id,
     };
   }
