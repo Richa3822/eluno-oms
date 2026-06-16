@@ -4,6 +4,7 @@ import { useOrder } from './hooks/useOrder'
 import { OrdersTable } from './components/OrdersTable'
 import { FilterBar } from './components/FilterBar'
 import { OrderDetailModal } from './components/OrderDetailModal'
+import { CreateOrderModal } from './components/CreateOrderModal'
 import type { Order } from './types/order'
 
 function App() {
@@ -12,6 +13,7 @@ function App() {
   const [lensType, setLensType] = useState('')
   const [storeLocation, setStoreLocation] = useState('')
   const [selectedOrderId, setSelectedOrderId] = useState<string | null>(null)
+  const [isCreateOpen, setIsCreateOpen] = useState(false)
 
   const { data, isLoading, isError } = useOrders({
     page,
@@ -29,7 +31,15 @@ function App() {
 
   return (
     <div className="min-h-screen bg-gray-50 p-6">
-      <h1 className="text-3xl font-bold text-gray-800 mb-6">Eluno OMS Dashboard</h1>
+      <div className="flex items-center justify-between mb-6">
+        <h1 className="text-3xl font-bold text-gray-800">Eluno OMS Dashboard</h1>
+        <button
+          onClick={() => setIsCreateOpen(true)}
+          className="bg-indigo-600 text-white rounded-md px-4 py-2 text-sm font-medium hover:bg-indigo-700"
+        >
+          + Add Order
+        </button>
+      </div>
 
       <FilterBar
         status={status}
@@ -73,6 +83,10 @@ function App() {
 
       {selectedOrder && (
         <OrderDetailModal order={selectedOrder} onClose={() => setSelectedOrderId(null)} />
+      )}
+
+      {isCreateOpen && (
+        <CreateOrderModal onClose={() => setIsCreateOpen(false)} />
       )}
     </div>
   )

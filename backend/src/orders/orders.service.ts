@@ -1,4 +1,5 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
+import { Prisma } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateOrderDto } from './dto/create-order.dto';
 import { UpdateStatusDto } from './dto/update-status.dto';
@@ -49,7 +50,7 @@ export class OrdersService {
         data: {
           customerName: dto.customerName,
           storeLocation: dto.storeLocation,
-          prescription: dto.prescription,
+          prescription: dto.prescription as unknown as Prisma.InputJsonValue,
           frameId: dto.frameId,
           lensType: dto.lensType,
           lensIndex: dto.lensIndex,
