@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<title>Eluno OMS — AI Architecture Note</title>
+<style>
+  @page { size: A4; margin: 12mm; }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; }
+  body {
+    font-family: Georgia, "Times New Roman", serif;
+    font-size: 10.5px;
+    line-height: 1.35;
+    color: #1a1a1a;
+    max-width: 720px;
+    margin: 0 auto;
+    padding: 8px 0;
+  }
+  h1 { font-size: 17px; margin: 0 0 2px; }
+  h2 { font-size: 11.5px; margin: 9px 0 2px; text-transform: uppercase; letter-spacing: .4px; color: #222; border-bottom: 1px solid #ccc; padding-bottom: 1px; }
+  p { margin: 3px 0; }
+  .meta { font-size: 10px; color: #444; margin: 0 0 1px; }
+  .urls { font-size: 10px; margin: 1px 0 6px; }
+  .urls a { color: #1a4f8b; text-decoration: none; }
+  table { border-collapse: collapse; width: 100%; margin: 3px 0; font-size: 10px; }
+  td { border: 1px solid #ddd; padding: 2px 6px; vertical-align: top; }
+  td:first-child { width: 95px; font-weight: bold; color: #333; }
+  ul { margin: 3px 0; padding-left: 16px; }
+  li { margin: 1px 0; }
+  hr { display: none; }
+</style>
+</head>
+<body>
+
+<h1>Eluno OMS — AI Architecture Note</h1>
+<p class="meta">Eyewear Order Management System with AI-assisted SLA breach prediction · Richa · June 2026</p>
+<p class="urls">
+  <strong>Frontend (Vercel):</strong> <a href="https://eluno-oms-git-main-richa-s-projects7.vercel.app">eluno-oms-git-main-richa-s-projects7.vercel.app</a><br/>
+  <strong>Backend API (Railway):</strong> <a href="https://eluno-oms-production-2f8d.up.railway.app">eluno-oms-production-2f8d.up.railway.app</a>
+</p>
+
+<h2>Overview</h2>
+<p>Eluno OMS tracks eyewear orders through their fulfilment stages (order placed → lens cutting → QC → dispatch → delivered) against a per-lens-type <strong>SLA deadline</strong>. The AI layer answers one question: <strong>"Will this order breach its SLA, and why?"</strong> — so the ops team can act before a deadline is missed.</p>
+
+<h2>AI Model / API</h2>
+<table>
+  <tr><td>Provider</td><td>Groq Cloud (OpenAI-compatible Chat Completions API)</td></tr>
+  <tr><td>Model</td><td><code>llama-3.3-70b-versatile</code> (Meta Llama 3.3, 70B)</td></tr>
+  <tr><td>Settings</td><td>Temperature 0.3, strict JSON output: { riskBand, reason }</td></tr>
+</table>
+<p><strong>Why Groq + Llama 3.3 70B:</strong> ultra-low latency so predictions feel instant in the dashboard; a 70B model reasons reliably over the order signals and gives a human-readable justification; generous free tier keeps costs near zero; and the OpenAI-compatible API means the model can be swapped by changing one URL — no rewrite.</p>
+
+<h2>How prediction works</h2>
+<p>The backend computes deterministic features first, then asks the model to reason over them — keeping results <strong>explainable, not hallucinated</strong>. Features sent: lens type &amp; coating, current stage and full stage history, QC failures so far, % of SLA window elapsed, and hours remaining. The model returns a risk band (<strong>LOW / MEDIUM / HIGH</strong>) plus a one-sentence reason citing those factors.</p>
+
+<h2>Automated alerting</h2>
+<p>When an order is classified <strong>HIGH</strong> risk, the backend automatically emails the ops team (Nodemailer/Gmail) with the order details and the AI's reasoning. Predictions and alerts are persisted for audit.</p>
+
+<h2>Tech stack</h2>
+<ul>
+  <li><strong>Frontend:</strong> React 19 + TypeScript + Vite, Tailwind, React Query — hosted on Vercel</li>
+  <li><strong>Backend:</strong> NestJS + Prisma + PostgreSQL — hosted on Railway</li>
+  <li><strong>AI:</strong> Groq (Llama 3.3 70B) · <strong>Notifications:</strong> Nodemailer (email)</li>
+</ul>
+
+<h2>Security</h2>
+<p>All AI calls run <strong>server-side</strong>, so the key never reaches the browser. The Groq key, database URL, and email credentials are stored as <strong>environment variables</strong> on the host — never committed to the repo.</p>
+
+</body>
+</html>

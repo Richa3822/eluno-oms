@@ -1,5 +1,7 @@
 import { Controller, Get, Post, Patch, Param, Body, Query } from '@nestjs/common';
 import { InventoryService } from './inventory.service';
+import { CreateInventoryDto } from './dto/create-inventory.dto';
+import { AddStockDto } from './dto/add-stock.dto';
 
 @Controller('inventory')
 export class InventoryController {
@@ -11,8 +13,8 @@ export class InventoryController {
   }
 
   @Post()
-  create(@Body() body: any) {
-    return this.inventoryService.create(body);
+  create(@Body() dto: CreateInventoryDto) {
+    return this.inventoryService.create(dto);
   }
 
   @Patch(':id')
@@ -21,7 +23,7 @@ export class InventoryController {
   }
 
   @Patch(':id/add-stock')
-  addStock(@Param('id') id: string, @Body('quantity') quantity: number) {
-    return this.inventoryService.addStock(id, quantity);
+  addStock(@Param('id') id: string, @Body() dto: AddStockDto) {
+    return this.inventoryService.addStock(id, dto.quantity);
   }
 }
